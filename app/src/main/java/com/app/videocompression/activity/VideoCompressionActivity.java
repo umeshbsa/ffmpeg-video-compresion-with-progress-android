@@ -1,6 +1,5 @@
-package com.app.videocompression;
+package com.app.videocompression.activity;
 
-import android.app.ProgressDialog;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -11,9 +10,12 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.app.videocompression.R;
+import com.app.videocompression.video.VideoCompressor;
+
 import java.io.File;
 
-public class MainActivity extends AppCompatActivity {
+public class VideoCompressionActivity extends AppCompatActivity {
 
     private VideoCompressor mVideoCompressor = new VideoCompressor(this);
     private TextView tv_output_path;
@@ -25,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_video_compression);
 
         // This is your input path of video
         String sdcardDir = Environment.getExternalStorageDirectory().getAbsolutePath();

@@ -1,4 +1,4 @@
-package com.app.videocompression;
+package com.app.videocompression.utils;
 
 import android.content.Context;
 import android.os.Environment;

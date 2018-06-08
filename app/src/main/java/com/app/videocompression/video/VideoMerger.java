@@ -1,21 +1,20 @@
-package com.app.videocompression;
+package com.app.videocompression.video;
 
 import android.content.Context;
-import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
 
+import com.app.videocompression.utils.ProgressCalculator;
 import com.github.hiteshsondhi88.libffmpeg.FFmpeg;
 import com.github.hiteshsondhi88.libffmpeg.FFmpegExecuteResponseHandler;
-import com.github.hiteshsondhi88.libffmpeg.LoadBinaryResponseHandler;
 import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegCommandAlreadyRunningException;
-import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegNotSupportedException;
 
 import java.io.File;
-import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.List;
 
 
-public class VideoCompressor {
+public class VideoMerger {
 
     public static final int SUCCESS = 1;
     public static final int FAILED = 2;
@@ -28,51 +27,43 @@ public class VideoCompressor {
     private int status = NONE;
     private String errorMessage = "Compression Failed!";
 
-    public VideoCompressor(Context context) {
+    public VideoMerger(Context context) {
         this.context = context;
         mProgressCalculator = new ProgressCalculator();
     }
 
-    public void startCompressing(String inputPath, CompressionListener listener) {
-        if (inputPath == null || inputPath.isEmpty()) {
-            status = NONE;
-            if (listener != null) {
-                listener.compressionFinished(NONE, false, null);
-            }
-            return;
-        }
+    public void startMerging(List<String> videoFilenameList, MergingCallback listener) {
 
         String outputPath = "";
-        outputPath = getAppDir() + "/video_compress.mp4";
-        String[] commandParams = new String[26];
-        commandParams[0] = "-y";
-        commandParams[1] = "-i";
-        commandParams[2] = inputPath;
-        commandParams[3] = "-s";
-        commandParams[4] = "240x320";
-        commandParams[5] = "-r";
-        commandParams[6] = "20";
-        commandParams[7] = "-c:v";
-        commandParams[8] = "libx264";
-        commandParams[9] = "-preset";
-        commandParams[10] = "ultrafast";
-        commandParams[11] = "-c:a";
-        commandParams[12] = "copy";
-        commandParams[13] = "-me_method";
-        commandParams[14] = "zero";
-        commandParams[15] = "-tune";
-        commandParams[16] = "fastdecode";
-        commandParams[17] = "-tune";
-        commandParams[18] = "zerolatency";
-        commandParams[19] = "-strict";
-        commandParams[20] = "-2";
-        commandParams[21] = "-b:v";
-        commandParams[22] = "1000k";
-        commandParams[23] = "-pix_fmt";
-        commandParams[24] = "yuv420p";
-        commandParams[25] = outputPath;
+        outputPath = getAppDir() + "/video_merge.mp4";
 
-        compressVideo(commandParams, outputPath, listener);
+        List<String> cmdList = new ArrayList<>();
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < videoFilenameList.size(); i++) {
+            cmdList.add("-i");
+            cmdList.add(videoFilenameList.get(i));
+
+            sb.append("[").append(i).append(":0] [").append(i).append(":1]");
+        }
+        sb.append(" concat=n=").append(videoFilenameList.size()).append(":v=1:a=1 [v] [a]");
+        cmdList.add("-filter_complex");
+        cmdList.add(sb.toString());
+        cmdList.add("-map");
+        cmdList.add("[v]");
+        cmdList.add("-map");
+        cmdList.add("[a]");
+        cmdList.add("-preset");
+        cmdList.add("ultrafast");
+        cmdList.add(outputPath);
+
+        sb = new StringBuilder();
+        for (String str : cmdList) {
+            sb.append(str).append(" ");
+        }
+
+        String[] cmd = cmdList.toArray(new String[cmdList.size()]);
+        compressVideo(cmd, outputPath, listener);
 
     }
 
@@ -91,7 +82,7 @@ public class VideoCompressor {
         return outputPath;
     }
 
-    private void compressVideo(String[] command, final String outputFilePath, final CompressionListener listener) {
+    private void compressVideo(String[] command, final String outputFilePath, final MergingCallback listener) {
         try {
 
             FFmpeg.getInstance(context).execute(command, new FFmpegExecuteResponseHandler() {
@@ -133,7 +124,7 @@ public class VideoCompressor {
                     Log.e("VideoCronProgress", "finnished");
                     isFinished = true;
                     if (listener != null) {
-                        listener.compressionFinished(status, true, outputFilePath);
+                        listener.onMergeComplete(outputFilePath);
                     }
                 }
             });
@@ -146,8 +137,8 @@ public class VideoCompressor {
         }
     }
 
-    public interface CompressionListener {
-        void compressionFinished(int status, boolean isVideo, String fileOutputPath);
+    public interface MergingCallback {
+        void onMergeComplete(String fileOutputPath);
 
         void onFailure(String message);
 
